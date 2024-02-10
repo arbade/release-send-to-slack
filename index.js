@@ -10,8 +10,8 @@ async function run() {
         const colorHex = Math.floor(Math.random() * 16777215).toString(16);
         setOutput('color_hex', colorHex);
 
-        // Prepare Slack Message
-        const changes = payload.release.body.replace(/<\/?[^>]+(>|$)/g, "");
+        // Parse Markdown Changelog
+        const changes = parseMarkdownChangelog(payload.release.body);
         setOutput('changes', changes);
 
         // Slack Notification
@@ -45,6 +45,21 @@ async function run() {
     } catch (error) {
         setFailed(error.message);
     }
+}
+
+function parseMarkdownChangelog(changelog) {
+    // Remove Markdown syntax and join lines
+    const cleanedChangelog = changelog.replace(/<\/?[^>]+(>|$)/g, "").replace(/\n+/g, " ");
+    // Extract changes
+    const regex = /## (.+?)\n(?:- (.+?)\n)*/g;
+    let match;
+    let parsedChanges = '';
+    while ((match = regex.exec(cleanedChangelog)) !== null) {
+        const category = match[1];
+        const changes = match[2].trim();
+        parsedChanges += `**${category}**:\n${changes}\n`;
+    }
+    return parsedChanges;
 }
 
 run();
