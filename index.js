@@ -5,7 +5,7 @@ const marked = require('marked');
 async function run() {
     try {
         const slackWebhookURL = process.env.SLACK_RELEASE_WEBHOOK_URL;
-        const changelog = await parseMarkdownChangelog();
+        const changelog = await parseMarkdownChangelog(process.env.CHANGELOG);
         const colorHex = generateHexColor();
 
         await sendSlackNotification(slackWebhookURL, changelog, colorHex);
@@ -15,9 +15,9 @@ async function run() {
     }
 }
 
-async function parseMarkdownChangelog() {
-    const changelog = execSync(`echo -n "${process.env.CHANGELOG}" | docker run --rm -i pandoc/core:latest -f markdown -t plain`).toString().trim();
-    return marked(changelog);
+async function parseMarkdownChangelog(changelog) {
+    const markdownContent = execSync(`echo -n "${changelog}" | docker run --rm -i pandoc/core:latest -f markdown -t plain`).toString().trim();
+    return marked(markdownContent);
 }
 
 function generateHexColor() {
@@ -35,18 +35,8 @@ async function sendSlackNotification(slackWebhookURL, changelog, colorHex) {
                 pretext: '*New Release Alert!*',
                 fields: [
                     {
-                        title: 'Release Information',
-                        value: `*Version:* \`${payload.release.tag_name}\` :label:\n*Repository:* \`${payload.repository.full_name}\`\n*Author:* ${payload.sender.login}`,
-                        short: false
-                    },
-                    {
                         title: 'Changes',
                         value: changelog,
-                        short: false
-                    },
-                    {
-                        title: 'Release Details',
-                        value: `:eyes: *View on GitHub:* <${payload.release.html_url}>`,
                         short: false
                     }
                 ]
