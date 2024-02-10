@@ -48,13 +48,13 @@ async function run() {
 }
 
 function parseMarkdownChangelog(changelog) {
-    const regex = /##\s(.+?)\n((?:- (.+?)\n)+)/g;
+    const regex = /##\s(.+?)\n((?:- .+\n)+)/g;
     let parsedChanges = '';
 
     let match;
     while ((match = regex.exec(changelog)) !== null) {
         const category = match[1].trim();
-        const changes = match[0].split('\n').slice(1).map(line => line.replace(/^- /, '')).join('\n');
+        const changes = match[2].trim().replace(/- /g, '- *').replace(/^/, '*');
         parsedChanges += `**${category}**:\n${changes}\n\n`;
     }
     return parsedChanges;
