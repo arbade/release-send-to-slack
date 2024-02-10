@@ -29,10 +29,28 @@ async function run() {
 }
 
 function parseMarkdownChangelog(changelog) {
-    let changes = execSync(`echo -n "${changelog}" | docker run --rm -i pandoc/core:latest -f markdown -t plain`).toString().trim();
-    changes = changes.split('\n').join('\\n');
-    return changes;
+    const sections = changelog.split('\n\n');
+    let parsedChanges = '';
+
+    for (const section of sections) {
+        const lines = section.trim().split('\n');
+        const category = lines.shift().replace(/^#+\s*/, '');
+        parsedChanges += `*${category}*\n`;
+
+        for (const line of lines) {
+            if (line.startsWith('-')) {
+                parsedChanges += `   ${line}\n`;
+            } else {
+                parsedChanges += `*  ${line}*\n`;
+            }
+        }
+
+        parsedChanges += '\n';
+    }
+
+    return parsedChanges.trim();
 }
+
 
 function generateHexColor() {
     return Math.floor(Math.random() * 16777215).toString(16);
