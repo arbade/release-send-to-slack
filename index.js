@@ -29,13 +29,16 @@ async function run() {
 }
 
 function parseMarkdownChangelog(changelog) {
-    const sections = changelog.match(/##\s+(.+?)(?=\n##|\n*$)/gs);
+    const sections = changelog.match(/##\s+(.+?)(?=\n##|$)/gs);
     if (!sections) return '';
 
     let parsedChanges = '';
 
     sections.forEach(section => {
-        const category = section.match(/##\s+(.+?)\n/)[1].trim();
+        const categoryMatch = section.match(/##\s+(.+?)(\n|$)/);
+        if (!categoryMatch || categoryMatch.length < 2) return;
+
+        const category = categoryMatch[1].trim();
         const items = section.match(/- .+?(?=\n- |\n*$)/gs);
         if (!items) return;
 
