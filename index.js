@@ -48,18 +48,18 @@ async function run() {
 }
 
 function parseMarkdownChangelog(changelog) {
-    // Remove Markdown syntax and join lines
-    const cleanedChangelog = changelog.replace(/<\/?[^>]+(>|$)/g, "").replace(/\n+/g, " ");
-    // Extract changes
-    const regex = /## (.+?)\n(?:- (.+?)\n)*/g;
-    let match;
+    // Extract changes between headings
+    const regex = /##\s(.+?)\n((?:-\s.*\n)+)/g;
     let parsedChanges = '';
-    while ((match = regex.exec(cleanedChangelog)) !== null) {
-        const category = match[1];
-        const changes = match[2].trim();
-        parsedChanges += `**${category}**:\n${changes}\n`;
+
+    let match;
+    while ((match = regex.exec(changelog)) !== null) {
+        const category = match[1].trim();
+        const changes = match[2].trim().split('\n').map(line => line.replace(/^- /, '')).join('\n');
+        parsedChanges += `**${category}**:\n${changes}\n\n`;
     }
     return parsedChanges;
 }
+
 
 run();
