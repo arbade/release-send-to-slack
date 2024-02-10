@@ -1,32 +1,50 @@
-const { execSync } = require('child_process');
+const core = require('@actions/core');
+const { readFileSync } = require('fs');
 const axios = require('axios');
-const marked = require('marked');
 
 async function run() {
     try {
-        const slackWebhookURL = process.env.SLACK_RELEASE_WEBHOOK_URL;
-        const changelog = await parseMarkdownChangelog(process.env.CHANGELOG);
-        const colorHex = generateHexColor();
+        const slackWebhookURL = core.getInput('slack-webhook-url');
+        const changelog = getChangelogFromEvent();
 
-        await sendSlackNotification(slackWebhookURL, changelog, colorHex);
+        const { changes, colorHex } = processChangelog(changelog);
+        core.setOutput('changes', changes);
+        core.setOutput('color_hex', colorHex);
+
+        await sendSlackNotification(slackWebhookURL, changelog, changes, colorHex);
     } catch (error) {
-        console.error('Error:', error.message);
-        process.exit(1);
+        core.setFailed(error.message);
     }
 }
 
-async function parseMarkdownChangelog(changelog) {
-    // Convert Markdown to HTML using the 'marked' library
-    return marked(changelog);
+function getChangelogFromEvent() {
+    const eventPayloadPath = process.env.GITHUB_EVENT_PATH;
+    const payload = JSON.parse(readFileSync(eventPayloadPath, 'utf8'));
+    return payload.release.body;
+}
+
+function processChangelog(changelog) {
+    const plainTextChanges = parseMarkdownChangelog(changelog);
+    const colorHex = generateHexColor();
+    return { changes: plainTextChanges, colorHex };
+}
+
+function parseMarkdownChangelog(changelog) {
+    let changes = execSync(`echo -n "${changelog}" | docker run --rm -i pandoc/core:latest -f markdown -t plain`).toString().trim();
+    return changes.split('\n').join('\\n');
 }
 
 function generateHexColor() {
     return Math.floor(Math.random() * 16777215).toString(16);
 }
 
-async function sendSlackNotification(slackWebhookURL, changelog, colorHex) {
-    // Prepare the Slack message payload
-    const slackMessage = {
+async function sendSlackNotification(slackWebhookURL, changelog, changes, colorHex) {
+    const payload = createSlackMessagePayload(changelog, changes, colorHex);
+    await axios.post(slackWebhookURL, payload);
+}
+
+function createSlackMessagePayload(changelog, changes, colorHex) {
+    return {
         text: 'A release is published.',
         attachments: [
             {
@@ -35,17 +53,24 @@ async function sendSlackNotification(slackWebhookURL, changelog, colorHex) {
                 pretext: '*New Release Alert!*',
                 fields: [
                     {
+                        title: 'Release Information',
+                        value: `*Version:* \`${changelog.release.tag_name}\` :label:\n*Repository:* \`${changelog.repository.full_name}\`\n*Author:* ${changelog.sender.login}`,
+                        short: false
+                    },
+                    {
                         title: 'Changes',
-                        value: changelog,
+                        value: changes,
+                        short: false
+                    },
+                    {
+                        title: 'Release Details',
+                        value: `:eyes: *View on GitHub:* <${changelog.release.html_url}>`,
                         short: false
                     }
                 ]
             }
         ]
     };
-
-    // Send the Slack message
-    await axios.post(slackWebhookURL, slackMessage);
 }
 
 run();
