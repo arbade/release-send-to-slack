@@ -1,5 +1,6 @@
 const core = require('@actions/core');
 const { readFileSync } = require('fs');
+const { execSync } = require('child_process'); // Import execSync
 const axios = require('axios');
 
 async function run() {
