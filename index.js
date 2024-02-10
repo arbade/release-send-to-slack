@@ -1,4 +1,4 @@
-const {execSync} = require('child_process');
+const { execSync } = require('child_process');
 const axios = require('axios');
 const marked = require('marked');
 
@@ -16,15 +16,16 @@ async function run() {
 }
 
 async function parseMarkdownChangelog() {
-    const changelog = execSync('pandoc -f markdown -t plain changelog.md').toString().trim();
-    return marked(changelog);
+    const changelog = process.env.RELEASE_BODY;
+    const plainTextChangelog = execSync(`echo "${changelog}" | pandoc -f markdown -t plain`).toString().trim();
+    return marked(plainTextChangelog);
 }
 
 function generateHexColor() {
     return Math.floor(Math.random() * 16777215).toString(16);
 }
 
-async function sendSlackNotification(slackWebhookURL, payload, changelog, colorHex) {
+async function sendSlackNotification(slackWebhookURL, changelog, colorHex) {
     // Prepare the Slack message payload
     const slackMessage = {
         text: 'A release is published.',
@@ -36,7 +37,7 @@ async function sendSlackNotification(slackWebhookURL, payload, changelog, colorH
                 fields: [
                     {
                         title: 'Release Information',
-                        value: `*Version:* \`${payload.release.tag_name}\` :label:\n*Repository:* \`${payload.repository.full_name}\`\n*Author:* ${payload.sender.login}`,
+                        value: `*Version:* \`${process.env.RELEASE_TAG}\` :label:\n*Repository:* \`${process.env.REPOSITORY_FULL_NAME}\`\n*Author:* ${process.env.RELEASE_AUTHOR}`,
                         short: false
                     },
                     {
@@ -46,7 +47,7 @@ async function sendSlackNotification(slackWebhookURL, payload, changelog, colorH
                     },
                     {
                         title: 'Release Details',
-                        value: `:eyes: *View on GitHub:* <${payload.release.html_url}>`,
+                        value: `:eyes: *View on GitHub:* <${process.env.RELEASE_HTML_URL}>`,
                         short: false
                     }
                 ]
