@@ -1,18 +1,18 @@
-const { getInput, setFailed, setOutput } = require('@actions/core');
+const core = require('@actions/core');
 const axios = require('axios');
 
 async function run() {
     try {
         const payload = require(process.env.GITHUB_EVENT_PATH);
-        const slackWebhookURL = getInput('slack-webhook-url');
+        const slackWebhookURL = core.getInput('slack-webhook-url');
 
         // Generate Hex Color
         const colorHex = Math.floor(Math.random() * 16777215).toString(16);
-        setOutput('color_hex', colorHex);
+        core.setOutput('color_hex', colorHex);
 
         // Parse Markdown Changelog
         const changes = parseMarkdownChangelog(payload.release.body);
-        setOutput('changes', changes);
+        core.setOutput('changes', changes);
 
         // Slack Notification
         await axios.post(slackWebhookURL, {
@@ -43,15 +43,15 @@ async function run() {
             ]
         });
     } catch (error) {
-        setFailed(error.message);
+        core.setFailed(error.message);
     }
 }
 
 function parseMarkdownChangelog(changelog) {
     const regex = /##\s(.+?)\n((?:- .+\n)+)/g;
     let parsedChanges = '';
-
     let match;
+
     while ((match = regex.exec(changelog)) !== null) {
         const category = match[1].trim();
         const changes = match[2].split('\n').map(line => line.trim().replace(/^- /, '-')).join('\n');
@@ -60,8 +60,5 @@ function parseMarkdownChangelog(changelog) {
 
     return parsedChanges;
 }
-
-
-
 
 run();
