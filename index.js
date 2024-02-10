@@ -1,21 +1,28 @@
 const core = require('@actions/core');
 const { execSync } = require('child_process');
-const { context, getOctokit } = require('@actions/github');
+const fs = require('fs');
+const axios = require('axios');
 
 async function run() {
     try {
+        // Get the Slack webhook URL from the action input
         const slackWebhookURL = core.getInput('slack-webhook-url');
-        const octokit = getOctokit(process.env.GITHUB_TOKEN);
 
-        const changelog = context.payload.release.body;
+        // Read the release body from the event payload file
+        const eventPayloadPath = process.env.GITHUB_EVENT_PATH;
+        const payload = JSON.parse(fs.readFileSync(eventPayloadPath, 'utf8'));
+        const changelog = payload.release.body;
+
+        // Parse the markdown changelog
         const changes = parseMarkdownChangelog(changelog);
-
         core.setOutput('changes', changes);
 
+        // Generate a hex color
         const colorHex = generateHexColor();
         core.setOutput('color_hex', colorHex);
 
-        await sendSlackNotification(slackWebhookURL, changes, colorHex);
+        // Send Slack notification
+        await sendSlackNotification(slackWebhookURL, payload, changes, colorHex);
     } catch (error) {
         core.setFailed(error.message);
     }
@@ -31,8 +38,9 @@ function generateHexColor() {
     return Math.floor(Math.random() * 16777215).toString(16);
 }
 
-async function sendSlackNotification(slackWebhookURL, changes, colorHex) {
-    const payload = {
+async function sendSlackNotification(slackWebhookURL, payload, changes, colorHex) {
+    // Prepare the Slack message payload
+    const slackMessage = {
         text: 'A release is published.',
         attachments: [
             {
@@ -42,7 +50,7 @@ async function sendSlackNotification(slackWebhookURL, changes, colorHex) {
                 fields: [
                     {
                         title: 'Release Information',
-                        value: `*Version:* \`${context.payload.release.tag_name}\` :label:\n*Repository:* \`${context.payload.repository.full_name}\`\n*Author:* ${context.payload.sender.login}`,
+                        value: `*Version:* \`${payload.release.tag_name}\` :label:\n*Repository:* \`${payload.repository.full_name}\`\n*Author:* ${payload.sender.login}`,
                         short: false
                     },
                     {
@@ -52,7 +60,7 @@ async function sendSlackNotification(slackWebhookURL, changes, colorHex) {
                     },
                     {
                         title: 'Release Details',
-                        value: `:eyes: *View on GitHub:* <${context.payload.release.html_url}>`,
+                        value: `:eyes: *View on GitHub:* <${payload.release.html_url}>`,
                         short: false
                     }
                 ]
@@ -60,8 +68,8 @@ async function sendSlackNotification(slackWebhookURL, changes, colorHex) {
         ]
     };
 
-    // Send payload to Slack webhook URL
-    await axios.post(slackWebhookURL, payload);
+    // Send the Slack message
+    await axios.post(slackWebhookURL, slackMessage);
 }
 
 run();
