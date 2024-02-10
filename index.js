@@ -1,75 +1,51 @@
 const core = require('@actions/core');
-const { execSync } = require('child_process');
-const fs = require('fs');
 const axios = require('axios');
 
 async function run() {
     try {
-        // Get the Slack webhook URL from the action input
         const slackWebhookURL = core.getInput('slack-webhook-url');
+        const releaseBody = process.env.GITHUB_EVENT_PATH;
 
-        // Read the release body from the event payload file
-        const eventPayloadPath = process.env.GITHUB_EVENT_PATH;
-        const payload = JSON.parse(fs.readFileSync(eventPayloadPath, 'utf8'));
-        const changelog = payload.release.body;
+        // Extract mentioned users from changelog
+        let changes = await parseMarkdownChangelog(releaseBody);
 
-        // Parse the markdown changelog
-        const changes = parseMarkdownChangelog(changelog);
+        // Set output for changes
         core.setOutput('changes', changes);
 
-        // Generate a hex color
+        // Generate Hex Color
         const colorHex = generateHexColor();
         core.setOutput('color_hex', colorHex);
 
-        // Send Slack notification
-        await sendSlackNotification(slackWebhookURL, payload, changes, colorHex);
+        // Slack Notification
+        await sendSlackNotification(slackWebhookURL, changes, colorHex);
     } catch (error) {
         core.setFailed(error.message);
     }
 }
 
-function parseMarkdownChangelog(changelog) {
-    const categories = changelog.match(/##\s(.+?)\n((?:- .+?\n)+)/g);
-    if (!categories) return ''; // Return an empty string if no categories are found
-
-    let parsedChanges = '';
-    categories.forEach(category => {
-        const categoryName = category.match(/##\s(.+?)\n/)[1].trim();
-        parsedChanges += `**${categoryName}**:\n`;
-
-        const changes = category.match(/- .+?(?=\n- |\n*$)/g);
-        if (changes) {
-            changes.forEach(change => {
-                parsedChanges += `  ${change.substring(2).trim()}\n`; // Remove '- ' and add indentation
-            });
-        }
-        parsedChanges += '\n';
-    });
-
-    return parsedChanges.trim(); // Remove trailing whitespace
+async function parseMarkdownChangelog(releaseBody) {
+    // Use axios to make an HTTP request to pandoc
+    const response = await axios.post('http://pandoc:8080', { markdown: releaseBody }, { responseType: 'text' });
+    return response.data;
 }
-
-
-
-
 
 function generateHexColor() {
     return Math.floor(Math.random() * 16777215).toString(16);
 }
 
-async function sendSlackNotification(slackWebhookURL, payload, changes, colorHex) {
-    // Prepare the Slack message payload
+async function sendSlackNotification(slackWebhookURL, changes, colorHex) {
+    // Implement Slack notification logic here
     const slackMessage = {
         text: 'A release is published.',
         attachments: [
             {
-                fallback: '*New Release Alert!*',
+                fallback: ':alert: *New Release Alert!* :alert:',
                 color: `#${colorHex}`,
-                pretext: '*New Release Alert!*',
+                pretext: ':alert: *New Release Alert!* :alert:',
                 fields: [
                     {
                         title: 'Release Information',
-                        value: `*Version:* \`${payload.release.tag_name}\` :label:\n*Repository:* \`${payload.repository.full_name}\`\n*Author:* ${payload.sender.login}`,
+                        value: '*Version:* `' + process.env.GITHUB_REF.split('/').pop() + '` :label:\n*Repository:* `' + process.env.GITHUB_REPOSITORY + '`\n*Author:* ' + process.env.GITHUB_ACTOR,
                         short: false
                     },
                     {
@@ -79,7 +55,7 @@ async function sendSlackNotification(slackWebhookURL, payload, changes, colorHex
                     },
                     {
                         title: 'Release Details',
-                        value: `:eyes: *View on GitHub:* <${payload.release.html_url}>`,
+                        value: ':eyes: *View on GitHub:* <' + process.env.GITHUB_SERVER_URL + '/' + process.env.GITHUB_REPOSITORY + '/releases/tag/' + process.env.GITHUB_REF.split('/').pop() + '>',
                         short: false
                     }
                 ]
@@ -87,7 +63,6 @@ async function sendSlackNotification(slackWebhookURL, payload, changes, colorHex
         ]
     };
 
-    // Send the Slack message
     await axios.post(slackWebhookURL, slackMessage);
 }
 
