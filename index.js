@@ -16,8 +16,8 @@ async function run() {
 }
 
 async function parseMarkdownChangelog(changelog) {
-    const markdownContent = execSync(`echo -n "${changelog}" | docker run --rm -i pandoc/core:latest -f markdown -t plain`).toString().trim();
-    return marked(markdownContent);
+    // Convert Markdown to HTML using the 'marked' library
+    return marked(changelog);
 }
 
 function generateHexColor() {
