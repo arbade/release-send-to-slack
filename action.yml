@@ -1,0 +1,15 @@
+name: 'Release Notice'
+description: 'Send release notifications to Slack'
+author: 'arbade'
+inputs:
+  slack-webhook-url:
+    description: 'Slack Webhook URL'
+    required: true
+outputs:
+  color_hex:
+    description: 'Generated Hex Color'
+  changes:
+    description: 'Release Changes'
+runs:
+  using: 'node20'
+  main: 'index.js'
