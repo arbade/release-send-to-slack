@@ -1,64 +1,70 @@
-const core = require('@actions/core');
-const axios = require('axios');
+const { execSync } = require('child_process');
+const { GitHub, context } = require('@actions/github');
 
 async function run() {
     try {
-        const payload = require(process.env.GITHUB_EVENT_PATH);
-        const slackWebhookURL = core.getInput('slack-webhook-url');
+        const github = new GitHub(process.env.GITHUB_TOKEN);
 
-        // Generate Hex Color
-        const colorHex = Math.floor(Math.random() * 16777215).toString(16);
-        core.setOutput('color_hex', colorHex);
+        const changelog = context.payload.release.body;
+        let changes = parseMarkdownChangelog(changelog);
 
-        // Parse Markdown Changelog
-        const changes = parseMarkdownChangelog(payload.release.body);
-        core.setOutput('changes', changes);
+        console.log(`::set-output name=changes::${changes}`);
 
-        // Slack Notification
-        await axios.post(slackWebhookURL, {
-            text: 'A release is published.',
-            attachments: [
-                {
-                    fallback: ':alert: *New Release Alert!* :alert:',
-                    color: `#${colorHex}`,
-                    pretext: ':alert: *New Release Alert!* :alert:',
-                    fields: [
-                        {
-                            title: 'Release Information',
-                            value: `*Version:* \`${payload.release.tag_name}\` :label:\n*Repository:* \`${payload.repository.full_name}\`\n*Author:* ${payload.sender.login}`,
-                            short: false
-                        },
-                        {
-                            title: 'Changes',
-                            value: changes,
-                            short: false
-                        },
-                        {
-                            title: 'Release Details',
-                            value: `:eyes: *View on GitHub:* <${payload.release.html_url}>`,
-                            short: false
-                        }
-                    ]
-                }
-            ]
-        });
+        const colorHex = generateHexColor();
+        console.log(`::set-output name=color_hex::${colorHex}`);
+
+        await sendSlackNotification(github, changes, colorHex);
     } catch (error) {
-        core.setFailed(error.message);
+        console.error(error.message);
+        process.exit(1);
     }
 }
 
 function parseMarkdownChangelog(changelog) {
-    const regex = /##\s(.+?)\n((?:- .+\n)+)/g;
-    let parsedChanges = '';
-    let match;
+    let changes = execSync(`echo -n "${changelog}" | docker run --rm -i pandoc/core:latest -f markdown -t plain`).toString().trim();
+    changes = changes.split('\n').join('\\n');
+    return changes;
+}
 
-    while ((match = regex.exec(changelog)) !== null) {
-        const category = match[1].trim();
-        const changes = match[2].split('\n').map(line => line.trim().replace(/^- /, '-')).join('\n');
-        parsedChanges += `*${category}*\n${changes}\n\n`;
+function generateHexColor() {
+    return Math.floor(Math.random() * 16777215).toString(16);
+}
+
+async function sendSlackNotification(github, changes, colorHex) {
+    if (process.env.SUCCESS === 'true') {
+        await github.repos.createCommitComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            commit_sha: context.sha,
+            body: JSON.stringify({
+                text: 'A release is published.',
+                attachments: [
+                    {
+                        fallback: ':alert: *New Release Alert!* :alert:',
+                        color: `#${colorHex}`,
+                        pretext: ':alert: *New Release Alert!* :alert:',
+                        fields: [
+                            {
+                                title: 'Release Information',
+                                value: `*Version:* \`${context.payload.release.tag_name}\` :label:\n*Repository:* \`${context.repo.repo}\`\n*Author:* ${context.actor}`,
+                                short: false
+                            },
+                            {
+                                title: 'Changes',
+                                value: changes,
+                                short: false
+                            },
+                            {
+                                title: 'Release Details',
+                                value: `:eyes: *View on GitHub:* <${context.payload.release.html_url}>`,
+                                short: false
+                            }
+                        ]
+                    }
+                ]
+            })
+        });
     }
-
-    return parsedChanges;
 }
 
 run();
