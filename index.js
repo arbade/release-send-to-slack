@@ -35,14 +35,15 @@ function parseMarkdownChangelog(changelog) {
     let parsedChanges = '';
     categories.forEach(category => {
         const categoryName = category.match(/##\s(.+?)\n/)[1].trim();
+        parsedChanges += `**${categoryName}**:\n`;
+
         const changes = category.match(/- .+?(?=\n- |\n*$)/g);
         if (changes) {
-            parsedChanges += `**${categoryName}**:\n`;
             changes.forEach(change => {
-                parsedChanges += `- ${change.trim().substring(2)}\n`; // Trim '- ' from each change
+                parsedChanges += `  ${change.substring(2).trim()}\n`; // Remove '- ' and add indentation
             });
-            parsedChanges += '\n';
         }
+        parsedChanges += '\n';
     });
 
     return parsedChanges.trim(); // Remove trailing whitespace
