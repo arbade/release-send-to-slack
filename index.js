@@ -7,8 +7,12 @@ async function run() {
     try {
         const slackWebhookURL = core.getInput('slack-webhook-url');
         const changelog = getChangelogFromEvent();
+        console.log('Changelog:', changelog);
 
-        const { changes, colorHex } = processChangelog(changelog);
+        const { changes, colorHex } = processChangelog(changelog.body);
+        console.log('Changes:', changes);
+        console.log('ColorHex:', colorHex);
+
         core.setOutput('changes', changes);
         core.setOutput('color_hex', colorHex);
 
@@ -25,14 +29,19 @@ function getChangelogFromEvent() {
 }
 
 function processChangelog(changelog) {
-    const plainTextChanges = parseMarkdownChangelog(changelog.body);
-    const colorHex = generateHexColor();
+    const { plainTextChanges, colorHex } = parseMarkdownChangelog(changelog);
     return { changes: plainTextChanges, colorHex };
 }
 
 function parseMarkdownChangelog(changelog) {
-    let changes = execSync(`echo -n "${changelog}" | docker run --rm -i pandoc/core:latest -f markdown -t plain`).toString().trim();
-    return changes.split('\n').join('\\n');
+    // Convert Markdown syntax to Slack message formatting specifically for "Changes" section
+    let changes = changelog.replace(/^([-*])\s*/gm, '• '); // Replace list items with bullet points
+    changes = changes.replace(/\*\*(.*?)\*\*/g, '*$1*'); // Convert bold
+    changes = changes.replace(/`(.*?)`/g, '`$1`'); // Convert inline code
+    changes = changes.replace(/~~(.*?)~~/g, '~$1~'); // Convert strikethrough
+    changes = changes.replace(/\[(.*?)\]\((.*?)\)/g, '<$2|$1>'); // Convert links
+    const colorHex = generateHexColor();
+    return { plainTextChanges: changes, colorHex };
 }
 
 function generateHexColor() {
@@ -41,6 +50,7 @@ function generateHexColor() {
 
 async function sendSlackNotification(slackWebhookURL, changes, colorHex) {
     const payload = createSlackMessagePayload(changes, colorHex);
+    console.log('Slack Payload:', payload);
     await axios.post(slackWebhookURL, payload);
 }
 
