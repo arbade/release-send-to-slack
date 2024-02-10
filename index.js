@@ -54,12 +54,13 @@ function parseMarkdownChangelog(changelog) {
 
     while ((match = regex.exec(changelog)) !== null) {
         const category = match[1].trim();
-        const changes = match[2].split('\n').map(line => line.trim().replace(/^- /, '-')).join('\n- ');
-        parsedChanges += `**${category}**:\n- ${changes}\n\n`;
+        const changes = match[2].split('\n').map(line => line.trim().replace(/^- /, '-')).join('\n   - ');
+        parsedChanges += `**${category}**:\n   - ${changes}\n`;
     }
 
     return parsedChanges;
 }
+
 
 
 
