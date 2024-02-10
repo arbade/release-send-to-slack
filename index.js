@@ -1,22 +1,23 @@
+const core = require('@actions/core');
 const { execSync } = require('child_process');
-const { GitHub, context } = require('@actions/github');
+const { context, getOctokit } = require('@actions/github');
 
 async function run() {
     try {
-        const github = new GitHub(process.env.GITHUB_TOKEN);
+        const slackWebhookURL = core.getInput('slack-webhook-url');
+        const octokit = getOctokit(process.env.GITHUB_TOKEN);
 
         const changelog = context.payload.release.body;
-        let changes = parseMarkdownChangelog(changelog);
+        const changes = parseMarkdownChangelog(changelog);
 
-        console.log(`::set-output name=changes::${changes}`);
+        core.setOutput('changes', changes);
 
         const colorHex = generateHexColor();
-        console.log(`::set-output name=color_hex::${colorHex}`);
+        core.setOutput('color_hex', colorHex);
 
-        await sendSlackNotification(github, changes, colorHex);
+        await sendSlackNotification(slackWebhookURL, changes, colorHex);
     } catch (error) {
-        console.error(error.message);
-        process.exit(1);
+        core.setFailed(error.message);
     }
 }
 
@@ -30,41 +31,37 @@ function generateHexColor() {
     return Math.floor(Math.random() * 16777215).toString(16);
 }
 
-async function sendSlackNotification(github, changes, colorHex) {
-    if (process.env.SUCCESS === 'true') {
-        await github.repos.createCommitComment({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            commit_sha: context.sha,
-            body: JSON.stringify({
-                text: 'A release is published.',
-                attachments: [
+async function sendSlackNotification(slackWebhookURL, changes, colorHex) {
+    const payload = {
+        text: 'A release is published.',
+        attachments: [
+            {
+                fallback: '*New Release Alert!*',
+                color: `#${colorHex}`,
+                pretext: '*New Release Alert!*',
+                fields: [
                     {
-                        fallback: ':alert: *New Release Alert!* :alert:',
-                        color: `#${colorHex}`,
-                        pretext: ':alert: *New Release Alert!* :alert:',
-                        fields: [
-                            {
-                                title: 'Release Information',
-                                value: `*Version:* \`${context.payload.release.tag_name}\` :label:\n*Repository:* \`${context.repo.repo}\`\n*Author:* ${context.actor}`,
-                                short: false
-                            },
-                            {
-                                title: 'Changes',
-                                value: changes,
-                                short: false
-                            },
-                            {
-                                title: 'Release Details',
-                                value: `:eyes: *View on GitHub:* <${context.payload.release.html_url}>`,
-                                short: false
-                            }
-                        ]
+                        title: 'Release Information',
+                        value: `*Version:* \`${context.payload.release.tag_name}\` :label:\n*Repository:* \`${context.payload.repository.full_name}\`\n*Author:* ${context.payload.sender.login}`,
+                        short: false
+                    },
+                    {
+                        title: 'Changes',
+                        value: changes,
+                        short: false
+                    },
+                    {
+                        title: 'Release Details',
+                        value: `:eyes: *View on GitHub:* <${context.payload.release.html_url}>`,
+                        short: false
                     }
                 ]
-            })
-        });
-    }
+            }
+        ]
+    };
+
+    // Send payload to Slack webhook URL
+    await axios.post(slackWebhookURL, payload);
 }
 
 run();
