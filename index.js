@@ -18,7 +18,7 @@ async function run() {
 
         core.setOutput('color_hex', colorHex);
 
-        await sendSlackNotification(slackWebhookURL, slackMessage);
+        await sendSlackNotification(slackWebhookURL, slackMessage, colorHex);
     } catch (error) {
         core.setFailed(error.message);
     }
@@ -40,7 +40,7 @@ function generateHexColor() {
     return Math.floor(Math.random() * 16777215).toString(16);
 }
 
-async function sendSlackNotification(slackWebhookURL, slackMessage) {
+async function sendSlackNotification(slackWebhookURL, slackMessage, colorHex) {
     const payload = {
         text: 'A release is published.',
         attachments: [
