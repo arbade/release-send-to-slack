@@ -37,19 +37,19 @@ function parseMarkdownChangelog(changelog) {
         const category = lines.shift().replace(/^#+\s*/, '');
         parsedChanges += `*${category}*\n`;
 
-        for (const line of lines) {
-            if (line.startsWith('-')) {
-                parsedChanges += `   ${line}\n`;
-            } else {
-                parsedChanges += `*  ${line}*\n`;
+        if (lines.length > 0) {
+            parsedChanges += '\n';
+            for (const line of lines) {
+                if (line.startsWith('-')) {
+                    parsedChanges += `  ${line}\n`;
+                }
             }
         }
-
-        parsedChanges += '\n';
     }
 
     return parsedChanges.trim();
 }
+
 
 
 function generateHexColor() {
