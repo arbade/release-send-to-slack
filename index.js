@@ -29,30 +29,25 @@ async function run() {
 }
 
 function parseMarkdownChangelog(changelog) {
-    const sections = changelog.match(/##\s+(.+?)(?=\n##|$)/gs);
-    if (!sections) return '';
+    const categories = changelog.match(/##\s(.+?)\n((?:- .+?\n)+)/g);
+    if (!categories) return ''; // Return an empty string if no categories are found
 
     let parsedChanges = '';
-
-    sections.forEach(section => {
-        const categoryMatch = section.match(/##\s+(.+?)(\n|$)/);
-        if (!categoryMatch || categoryMatch.length < 2) return;
-
-        const category = categoryMatch[1].trim();
-        const items = section.match(/- .+?(?=\n- |\n*$)/gs);
-        if (!items) return;
-
-        parsedChanges += `*${category}*\n`;
-
-        items.forEach(item => {
-            parsedChanges += `- ${item.substring(2).trim()}\n`;
-        });
-
-        parsedChanges += '\n';
+    categories.forEach(category => {
+        const categoryName = category.match(/##\s(.+?)\n/)[1].trim();
+        const changes = category.match(/- .+?(?=\n- |\n*$)/g);
+        if (changes) {
+            parsedChanges += `**${categoryName}**:\n`;
+            changes.forEach(change => {
+                parsedChanges += `- ${change.trim().substring(2)}\n`; // Trim '- ' from each change
+            });
+            parsedChanges += '\n';
+        }
     });
 
-    return parsedChanges.trim();
+    return parsedChanges.trim(); // Remove trailing whitespace
 }
+
 
 
 
