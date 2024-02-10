@@ -16,9 +16,8 @@ async function run() {
 }
 
 async function parseMarkdownChangelog() {
-    const changelog = process.env.RELEASE_BODY;
-    const plainTextChangelog = execSync(`echo "${changelog}" | pandoc -f markdown -t plain`).toString().trim();
-    return marked(plainTextChangelog);
+    const changelog = execSync(`echo -n "${process.env.CHANGELOG}" | docker run --rm -i pandoc/core:latest -f markdown -t plain`).toString().trim();
+    return marked(changelog);
 }
 
 function generateHexColor() {
@@ -37,7 +36,7 @@ async function sendSlackNotification(slackWebhookURL, changelog, colorHex) {
                 fields: [
                     {
                         title: 'Release Information',
-                        value: `*Version:* \`${process.env.RELEASE_TAG}\` :label:\n*Repository:* \`${process.env.REPOSITORY_FULL_NAME}\`\n*Author:* ${process.env.RELEASE_AUTHOR}`,
+                        value: `*Version:* \`${payload.release.tag_name}\` :label:\n*Repository:* \`${payload.repository.full_name}\`\n*Author:* ${payload.sender.login}`,
                         short: false
                     },
                     {
@@ -47,7 +46,7 @@ async function sendSlackNotification(slackWebhookURL, changelog, colorHex) {
                     },
                     {
                         title: 'Release Details',
-                        value: `:eyes: *View on GitHub:* <${process.env.RELEASE_HTML_URL}>`,
+                        value: `:eyes: *View on GitHub:* <${payload.release.html_url}>`,
                         short: false
                     }
                 ]
