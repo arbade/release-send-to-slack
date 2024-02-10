@@ -12,14 +12,13 @@ async function run() {
             throw new Error('Release notes not found');
         }
 
-        const { changes, colorHex } = processReleaseNotes(releaseNotes);
-        console.log('Changes:', changes);
+        const { slackMessage, colorHex } = processReleaseNotes(releaseNotes);
+        console.log('Slack Message:', slackMessage);
         console.log('ColorHex:', colorHex);
 
-        core.setOutput('changes', changes);
         core.setOutput('color_hex', colorHex);
 
-        await sendSlackNotification(slackWebhookURL, changes, colorHex);
+        await sendSlackNotification(slackWebhookURL, slackMessage);
     } catch (error) {
         core.setFailed(error.message);
     }
@@ -32,24 +31,17 @@ function getReleaseNotesFromEvent() {
 }
 
 function processReleaseNotes(releaseNotes) {
-    // Here you can add specific Markdown parsing logic if needed
-    // For simplicity, we'll just return the release notes as plain text
     const colorHex = generateHexColor();
-    return { changes: releaseNotes, colorHex };
+    const slackMessage = formatReleaseNotesForSlack(releaseNotes);
+    return { slackMessage, colorHex };
 }
 
 function generateHexColor() {
     return Math.floor(Math.random() * 16777215).toString(16);
 }
 
-async function sendSlackNotification(slackWebhookURL, changes, colorHex) {
-    const payload = createSlackMessagePayload(changes, colorHex);
-    console.log('Slack Payload:', payload);
-    await axios.post(slackWebhookURL, payload);
-}
-
-function createSlackMessagePayload(changes, colorHex) {
-    return {
+async function sendSlackNotification(slackWebhookURL, slackMessage) {
+    const payload = {
         text: 'A release is published.',
         attachments: [
             {
@@ -58,14 +50,26 @@ function createSlackMessagePayload(changes, colorHex) {
                 pretext: '*New Release Alert!*',
                 fields: [
                     {
-                        title: 'Changes',
-                        value: changes,
+                        title: 'Release Notes',
+                        value: slackMessage,
                         short: false
                     }
                 ]
             }
         ]
     };
+    console.log('Slack Payload:', payload);
+    await axios.post(slackWebhookURL, payload);
+}
+
+function formatReleaseNotesForSlack(releaseNotes) {
+    // Assuming releaseNotes is a Markdown string
+    // Convert Markdown syntax to Slack message formatting
+    // You can customize this conversion based on your needs
+    let slackMessage = releaseNotes.replace(/^##\s*(.*)$/gm, '*_$1_*'); // Convert headings
+    slackMessage = slackMessage.replace(/^- \[(.*)\] - (.*)$/gm, '*$1*: $2'); // Convert bullet points
+    slackMessage = slackMessage.replace(/`([^`]*)`/g, '`$1`'); // Preserve inline code
+    return slackMessage;
 }
 
 run();
