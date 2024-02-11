@@ -84,11 +84,11 @@ function formatReleaseNotesForSlack(releaseNotes) {
     let slackMessage = releaseNotes;
 
     // Convert Markdown headings to Slack bold italic
-    slackMessage = slackMessage.replace(/^##\s*(.*)$/gm, '*_$1_*');
+    slackMessage = slackMessage.replace(/^##\s*(.*)$/gm, '*_$1_*\n');
 
     // Convert Markdown bullet points to Slack bullet points
-    slackMessage = slackMessage.replace(/^- \[(.*)\] - (.*)$/gm, '*$1*: $2');
-    slackMessage = slackMessage.replace(/^- (.*)$/gm, '- $1');
+    slackMessage = slackMessage.replace(/^- \[(.*)\] - (.*)$/gm, '*$1*: $2\n');
+    slackMessage = slackMessage.replace(/^- (.*)$/gm, '- $1\n');
 
     // Convert Markdown bold to Slack bold
     slackMessage = slackMessage.replace(/\*\*(.*?)\*\*/g, '*$1*');
@@ -107,13 +107,14 @@ function formatReleaseNotesForSlack(releaseNotes) {
     slackMessage = slackMessage.replace(/\[(.*?)\]\((.*?)\)/g, '<$2|$1>');
 
     // Convert Markdown ordered and unordered lists to Slack lists
-    slackMessage = slackMessage.replace(/(^|\n)(-|\d+\.)\s(.*)/g, '\n-$3');
+    slackMessage = slackMessage.replace(/(^|\n)-(.*)/g, '\n-$2');
 
     // Trim excess whitespace
     slackMessage = slackMessage.trim();
 
     return slackMessage;
 }
+
 
 
 function getReleaseTagFromEvent() {
