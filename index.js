@@ -41,23 +41,31 @@ function generateHexColor() {
 }
 
 async function sendSlackNotification(slackWebhookURL, slackMessage, colorHex) {
+    const releaseInformationField = {
+        title: 'Release Information',
+        value: `*Version:* \`${process.env.GITHUB_EVENT_RELEASE_TAG}\` :label:\n*Repository:* \`${process.env.GITHUB_REPOSITORY}\`\n*Author:* ${process.env.GITHUB_ACTOR}`,
+        short: false
+    };
+
     const payload = {
         text: 'A release is published.',
         attachments: [
             {
-                fallback: '*New Release Alert!*',
+                fallback: ':alert: *New Release Alert!* :alert:',
                 color: `#${colorHex}`,
-                pretext: '*New Release Alert!*',
+                pretext: ':alert: *New Release Alert!* :alert:',
                 fields: [
                     {
                         title: 'Release Notes',
                         value: slackMessage,
                         short: false
-                    }
+                    },
+                    releaseInformationField
                 ]
             }
         ]
     };
+
     console.log('Slack Payload:', payload);
     await axios.post(slackWebhookURL, payload);
 }
