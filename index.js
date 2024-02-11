@@ -43,7 +43,7 @@ function generateHexColor() {
 async function sendSlackNotification(slackWebhookURL, slackMessage, colorHex) {
     const releaseInformationField = {
         title: 'Release Information',
-        value: `*Version:* \`${process.env.GITHUB_EVENT_RELEASE_TAG}\` :label:\n*Repository:* \`${process.env.GITHUB_REPOSITORY}\`\n*Author:* ${process.env.GITHUB_ACTOR}`,
+        value: `*Version:* \`${getReleaseTagFromEvent()}\` :label:\n*Repository:* \`${process.env.GITHUB_REPOSITORY}\`\n*Author:* ${process.env.GITHUB_ACTOR}`,
         short: false
     };
 
@@ -78,6 +78,12 @@ function formatReleaseNotesForSlack(releaseNotes) {
     slackMessage = slackMessage.replace(/^- \[(.*)\] - (.*)$/gm, '*$1*: $2'); // Convert bullet points
     slackMessage = slackMessage.replace(/`([^`]*)`/g, '`$1`'); // Preserve inline code
     return slackMessage;
+}
+
+function getReleaseTagFromEvent() {
+    const eventPayloadPath = process.env.GITHUB_EVENT_PATH;
+    const payload = JSON.parse(readFileSync(eventPayloadPath, 'utf8'));
+    return payload.release.tag_name;
 }
 
 run();
