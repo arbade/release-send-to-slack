@@ -81,7 +81,7 @@ function formatReleaseNotesForSlack(releaseNotes) {
     // Assuming releaseNotes is a Markdown string
     // Convert Markdown syntax to Slack message formatting
     // You can customize this conversion based on your needs
-    let slackMessage = releaseNotes.replace(/^##\s*(.*)$/gm, '*_$1_*\n'); // Convert headings
+    let slackMessage = releaseNotes.replace(/^##\s*(.*?)$/gm, '*_$1_*\n'); // Convert headings
     slackMessage = slackMessage.replace(/^- \[(.*)\] - (.*)$/gm, '*$1*: $2\n'); // Convert bullet points
     slackMessage = slackMessage.replace(/^- (.*)$/gm, '- $1\n'); // Convert bullet points without JIRA tags
     slackMessage = slackMessage.replace(/`([^`]*)`/g, '`$1`'); // Preserve inline code
@@ -95,6 +95,7 @@ function formatReleaseNotesForSlack(releaseNotes) {
 
     return slackMessage;
 }
+
 
 
 
