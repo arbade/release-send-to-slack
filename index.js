@@ -47,6 +47,12 @@ async function sendSlackNotification(slackWebhookURL, slackMessage, colorHex) {
         short: false
     };
 
+    const releaseDetailsField = {
+        title: 'Release Details',
+        value: `:eyes: *View on GitHub:* <${getReleaseHtmlUrlFromEvent()}>`,
+        short: false
+    };
+
     const payload = {
         text: 'A release is published.',
         attachments: [
@@ -60,7 +66,8 @@ async function sendSlackNotification(slackWebhookURL, slackMessage, colorHex) {
                         value: slackMessage,
                         short: false
                     },
-                    releaseInformationField
+                    releaseInformationField,
+                    releaseDetailsField
                 ]
             }
         ]
@@ -84,6 +91,12 @@ function getReleaseTagFromEvent() {
     const eventPayloadPath = process.env.GITHUB_EVENT_PATH;
     const payload = JSON.parse(readFileSync(eventPayloadPath, 'utf8'));
     return payload.release.tag_name;
+}
+
+function getReleaseHtmlUrlFromEvent() {
+    const eventPayloadPath = process.env.GITHUB_EVENT_PATH;
+    const payload = JSON.parse(readFileSync(eventPayloadPath, 'utf8'));
+    return payload.release.html_url;
 }
 
 run();
