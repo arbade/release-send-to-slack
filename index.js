@@ -81,41 +81,11 @@ function formatReleaseNotesForSlack(releaseNotes) {
     // Assuming releaseNotes is a Markdown string
     // Convert Markdown syntax to Slack message formatting
     // You can customize this conversion based on your needs
-    let slackMessage = releaseNotes;
-
-    // Convert Markdown headings to Slack bold italic
-    slackMessage = slackMessage.replace(/^##\s*(.*)$/gm, '*_$1_*\n');
-
-    // Convert Markdown bullet points to Slack bullet points
-    slackMessage = slackMessage.replace(/^- \[(.*)\] - (.*)$/gm, '*$1*: $2\n');
-    slackMessage = slackMessage.replace(/^- (.*)$/gm, '- $1\n');
-
-    // Convert Markdown bold to Slack bold
-    slackMessage = slackMessage.replace(/\*\*(.*?)\*\*/g, '*$1*');
-
-    // Convert Markdown italic to Slack italic
-    slackMessage = slackMessage.replace(/__(.*?)__/g, '_$1_');
-    slackMessage = slackMessage.replace(/\*(.*?)\*/g, '_$1_');
-
-    // Convert Markdown strikethrough to Slack strikethrough
-    slackMessage = slackMessage.replace(/~~(.*?)~~/g, '~$1~');
-
-    // Convert Markdown inline code to Slack inline code
-    slackMessage = slackMessage.replace(/`([^`]*)`/g, '`$1`');
-
-    // Convert Markdown hyperlinks to Slack hyperlinks
-    slackMessage = slackMessage.replace(/\[(.*?)\]\((.*?)\)/g, '<$2|$1>');
-
-    // Convert Markdown ordered and unordered lists to Slack lists
-    slackMessage = slackMessage.replace(/(^|\n)-(.*)/g, '\n-$2');
-
-    // Trim excess whitespace
-    slackMessage = slackMessage.trim();
-
+    let slackMessage = releaseNotes.replace(/^##\s*(.*)$/gm, '*_$1_*'); // Convert headings
+    slackMessage = slackMessage.replace(/^- \[(.*)\] - (.*)$/gm, '*$1*: $2'); // Convert bullet points
+    slackMessage = slackMessage.replace(/`([^`]*)`/g, '`$1`'); // Preserve inline code
     return slackMessage;
 }
-
-
 
 function getReleaseTagFromEvent() {
     const eventPayloadPath = process.env.GITHUB_EVENT_PATH;
