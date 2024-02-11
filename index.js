@@ -84,8 +84,16 @@ function formatReleaseNotesForSlack(releaseNotes) {
     let slackMessage = releaseNotes.replace(/^##\s*(.*)$/gm, '*_$1_*'); // Convert headings
     slackMessage = slackMessage.replace(/^- \[(.*)\] - (.*)$/gm, '*$1*: $2'); // Convert bullet points
     slackMessage = slackMessage.replace(/`([^`]*)`/g, '`$1`'); // Preserve inline code
+    slackMessage = slackMessage.replace(/\*\*(.*?)\*\*/g, '*$1*'); // Convert bold to italic
+    slackMessage = slackMessage.replace(/__(.*?)__/g, '_$1_'); // Convert double underscores to italic
+    slackMessage = slackMessage.replace(/\*(.*?)\*/g, '_$1_'); // Convert single asterisks to italic
+    slackMessage = slackMessage.replace(/~~(.*?)~~/g, '~$1~'); // Convert strikethrough
+    slackMessage = slackMessage.replace(/\[(.*?)\]\((.*?)\)/g, '<$2|$1>'); // Convert hyperlinks
+    slackMessage = slackMessage.replace(/^(-|\d+\.)\s(.*)$/gm, '- $2'); // Convert ordered and unordered lists
+
     return slackMessage;
 }
+
 
 function getReleaseTagFromEvent() {
     const eventPayloadPath = process.env.GITHUB_EVENT_PATH;
